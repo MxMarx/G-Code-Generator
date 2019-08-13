@@ -10,7 +10,9 @@
     || Created by Russell Marx, 2019 ||
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-  This MATLAB class generates g-code files for injections and cannula insertion.
+  This MATLAB class generates g-code files for injections and cannula insertion with a stereotaxic surgery robot.
+  To build the robot, see https://github.com/MxMarx/Stereotaxic-Surgery-Robot
+  
 
   First, add "gCode.m" to the MATLAB path, or change your MATLAB folder to the file's location.
 

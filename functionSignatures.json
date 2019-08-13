@@ -1,0 +1,55 @@
+{
+"gCode":
+{
+    "inputs":
+    [
+    ]
+},
+"gCode.cannula":
+{
+		"inputs":[
+			{"name":"obj","kind":"required","type":"gCode"},	
+			{"name":"ML","kind":"namevalue","type":"double"},
+			{"name":"AP","kind":"namevalue","type":"double"},
+            {"name":"DV","kind":"namevalue","type":"double"},
+			{"name":"angle","kind":"namevalue","type":"double"},
+			{"name":"name","kind":"namevalue"},
+            {"name":"speed","kind":"namevalue","type":"double"},
+            {"name":"overshoot","kind":"namevalue","type":"double"},
+            {"name":"dwellBeforeStart","kind":"namevalue","type":"double"}
+		]
+},
+"gCode.injection":
+{
+		"inputs":[
+			{"name":"obj","kind":"required","type":"gCode"},	
+			{"name":"ML","kind":"namevalue","type":"double"},
+			{"name":"AP","kind":"namevalue","type":"double"},
+            {"name":"DV","kind":"namevalue","type":"double"},
+			{"name":"angle","kind":"namevalue","type":"double"},
+			{"name":"name","kind":"namevalue"},
+            {"name":"speed","kind":"namevalue","type":"double"},
+            {"name":"overshoot","kind":"namevalue","type":"double"},
+            {"name":"dwellBeforeStart","kind":"namevalue","type":"double"}
+		]
+},
+"gCode.drill":
+{
+		"inputs":[
+			{"name":"obj","kind":"required","type":"gCode"},	
+			{"name":"skullThickness","kind":"namevalue","type":"double"},
+			{"name":"depthPerCycle","kind":"namevalue","type":"double"},
+			{"name":"speed","kind":"namevalue","type":"double"},
+			{"name":"dwellBeforeStart","kind":"namevalue","type":"double"},
+            {"name":"dwellBeforeCycle","kind":"namevalue","type":"double"},
+			{"name":"dwellAfterCycle","kind":"namevalue","type":"double"}
+		]
+},
+"gCode.brainAtlas":
+{
+		"inputs":[
+			{"name":"obj","kind":"required","type":"gCode"},	
+			{"name":"type","kind":"required","type":"choices={'mouse','rat'}"}
+		]
+}
+}

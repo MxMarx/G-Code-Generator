@@ -1,26 +1,148 @@
-% g = gCode;
-% 
-% g.cannula('AP',-4.5,'ML',0,'DV',3.25,'angle',15,'name','DRN');
-% g.injection('AP',-4.5,'ML',0,'DV',3.25,'angle',-15,'name','DRN');
-% 
-% g.injection('AP',-1.85,'ML',+0.42,'DV',2.6,'angle',10,'name','LHb');
-% g.cannula('AP',-1.85,'ML',-0.42,'DV',2.6,'angle',10,'name','LHb');
-% 
-% g.drill;z
-% g.brainAtlas('mouse')
-
-
 classdef gCode < handle
-    % Creates G-Code
+    % GCODE generates g-code for a stereotaxic surgery robot.
+    %{
+    
+       _____         _____          _            _____                           _
+      / ____|       / ____|        | |          / ____|                         | |
+     | |  __ ______| |     ___   __| | ___     | |  __  ___ _ __   ___ _ __ __ _| |_ ___  _ __
+     | | |_ |______| |    / _ \ / _` |/ _ \    | | |_ |/ _ \ '_ \ / _ \ '__/ _` | __/ _ \| '__|
+     | |__| |      | |___| (_) | (_| |  __/    | |__| |  __/ | | |  __/ | | (_| | || (_) | |
+      \_____|       \_____\___/ \__,_|\___|     \_____|\___|_| |_|\___|_|  \__,_|\__\___/|_|
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    || Created by Russell Marx, 2019 ||
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+  This MATLAB class generates g-code files for injections and cannula insertion with a stereotaxic surgery robot.
+  To build the robot, see https://github.com/MxMarx/Stereotaxic-Surgery-Robot
+    
+  First, add "gCode.m" to the MATLAB path, or change your MATLAB folder to the file's location.
+
+  The 'injection' function inserts a needle at the given coordinates, go slightly past the coordinates, and return.
+  The 'cannula' function inserts a cannula so that a needle that slightly overshoots the tip of the cannula hit the coordinates.
+  The 'drill' function generates g-code for all previously created injections and cannulas.
+  The 'brainAtlas' function displays the injections and cannulas overlaid on a Paxinos & Watson mouse or rat brain atlas. The needles are indicated in red, and overshoot in blue.
+
+  See below for a full description of the name-pair arguments of each function.
+
+  # EXAMPLE 1
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    g = gCode;
+    g.injection('AP', 1.7, 'ML', +1, 'DV', 7.3, 'name', 'NAc');
+    g.injection('AP', 1.7, 'ML', -1, 'DV', 7.3, 'name', 'NAc');
+    g.injection('AP', 0, 'ML', -2, 'DV', 8.1, 'name', 'VP');
+    g.injection('AP', 0, 'ML', +2, 'DV', 8.1, 'name', 'VP');
+    g.drill('skullThickness', 1.8);
+    g.brainAtlas('rat')
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  This script generates four files for injections, one file for drilling, and displays the needles in a rat brain atlas.
+
+
+
+  # EXAMPLE 2
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    g = gCode;
+    g.injection('AP', -4.5, 'ML', 0,'DV', 3.25, 'angle', +15, 'name', 'DRN');
+    g.injection('AP', -4.5, 'ML', 0,'DV', 3.25, 'angle', -15, 'name', 'DRN');
+    g.injection('AP', -1.85, 'ML', +0.42, 'DV', 2.6, 'angle', 10, 'name', 'LHb');
+    g.injection('AP', -1.85, 'ML', -0.42, 'DV', 2.6, 'angle', 10, 'name', 'LHb');
+    g.drill('skullThickness', 0.8);
+    g.brainAtlas('mouse')
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  This script generates four files for injections, one file for drilling, and displays the needles in a mouse brain atlas.
+  Notice that the 'angle' parameter is positive for the LHb injections, but not DRN.
+  This is because the sign of the angle only effects injections where ML is zero.
+
+
+
+
+  # EXAMPLE 3
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    g = gCode;
+    g.cannula('AP', -4.5, 'ML', 0, 'DV', 3.25, 'angle', 15, 'name', 'DRN', 'speed', 10, 'overshoot', 0.3);
+    g.injection('AP', -1.85, 'ML', +0.42, 'DV', 2.6, 'angle', 10, 'name', 'LHb', 'speed', 50, 'overshoot', 0);
+    g.injection('AP', -1.85, 'ML', -0.42, 'DV', 2.6, 'angle', 10, 'name', 'LHb', 'speed', 50, 'overshoot', 0);
+    g.drill('skullThickness', 0.8, 'depthPerCycle', 0.4, 'dwellAfterCycle', 1, 'speed', 10);
+    g.brainAtlas('mouse')
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  This script inserts a single cannula into the DRN, and injects bilaterally into the LHb.
+  The cannula is positioned so that a needle that extends 0.3 mm past the tip will reach the coordinates.
+  The injections have no overshoot.
+  The injections move at 50% speed, the cannula moves at 10% speed.
+  0.8 mm holes are drilled with the drill slowly moving down 0.4 mm per cycles, and pausing for 1 second at the bottom.
+
+
+
+  # NAME-VALUE PARAMTERS
+
+  +-------------------------------------------------------------------------------------------------+
+  |                                       injection / cannula                                       |
+  +-------------------------------------------------------------------------------------------------+
+  | Parameter Name      | Description                                                     | Default |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | AP                  | Anterior-Posterior coordinates.                                 | -       |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | ML                  | Medial-Lateral coordinates. Positive is to the right            | -       |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | DV                  | Dorsal-Ventral coordinates. Sign does not matter.               | -       |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | angle               | Injection angle. Sign is automatically changed towards medial.  | 0       |
+  |                     | If ML is zero, positive angles inject from the right.           |         |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | name                | Name of the output file.                                        | -       |
+  |                     | Left or Right is automatically appended.                        |         |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | speed               | Speed to insert the needle/cannula.                             | 25      |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | overshoot           | For injections: Distance to move the needle past the injection. | 0.25    |
+  |                     | For cannulas: Length of the needle past the cannula tip.        |         |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | dwellBeforeStart    | Duration to pause over the hole before inserting the needle.    | 6.0 s   |
+  +---------------------+-----------------------------------------------------------------+---------+
+  | dwellAfterOvershoot | Duration to pause after overshooting the injection site before  | 6.0 s   |
+  |                     | returning. Does not apply to cannulas.                          |         |
+  +---------------------+-----------------------------------------------------------------+---------+
+
+    
+  +-----------------------------------------------------------------------------+---------+
+  |                                    drill                                    |         |
+  +-----------------------------------------------------------------------------+---------+
+  | Parameter Name   | Description                                              | Default |
+  +------------------+----------------------------------------------------------+---------+
+  | skullThickness   | Depth to drill in mm.                                    | 1.0 mm  |
+  +------------------+----------------------------------------------------------+---------+
+  | depthPerCycle    | Depth increment per drilling cycle.                      | 0.2 mm  |
+  +------------------+----------------------------------------------------------+---------+
+  | speed            | Speed to move while drilling.                            | 50      |
+  +------------------+----------------------------------------------------------+---------+
+  | dwellBeforeStart | Duration to pause above the hole before drilling begins. | 4.0 s   |
+  +------------------+----------------------------------------------------------+---------+
+  | dwellBeforeCycle | Duration to pause at top of each cycle.                  | 1.0 s   |
+  +------------------+----------------------------------------------------------+---------+
+  | dwellAfterCycle  | Duration to pause at bottom of each cycle.               | 0.5 s   |
+  +------------------+----------------------------------------------------------+---------+
+
+  +------------+
+  | brainAtlas |
+  +------------+
+  | 'mouse'    |
+  +------------+
+  | 'rat'      |
+  +------------+
+    %}
+    
+    
     properties
-        injections = []
-        fid = 1
-        moveSpeed = 100
-        moveHeight = 3
-        folder = fullfile(fileparts(mfilename('fullpath')), 'Output');
+        moveSpeed = 100 % Movement speed in mm/minute
+        moveHeight = 3 % Height above to skull for moving the drill/needle
+        folder = fullfile(fileparts(mfilename('fullpath')), 'Output') % Output folder
+    end
+    properties (Access=private)
+        injections = [] % table containing the injection coordinates
+        file_id = 1 % file ID
     end
     
-    methods
+    methods (Access=public)
         function obj = gCode(obj)
             % Make the output directory
             if ~exist(obj.folder, 'dir')
@@ -29,6 +151,12 @@ classdef gCode < handle
         end
         
         function obj = cannula(obj, varargin)
+            % cannula generates g-code for inserting a cannula.
+            %
+            % gCode.cannula inserts a cannula so that a needle that
+            % slightly overshoots the tip of the cannula hits the given
+            % coordinates.
+            % Use the name-pair arguments to set the cannula parameters.
             
             [injection, p] = parseInjection(obj, varargin{:});
             
@@ -42,22 +170,27 @@ classdef gCode < handle
             % Open the file for writing
             disp('*******************************************************************************')
             fname = fullfile(obj.folder, [injection.injectionName{:} '_Injection.ncc']);
-            [obj.fid, e] = fopen(fname,'w+');
+            [obj.file_id, e] = fopen(fname,'w+');
             disp(e)
             
             % Write the code
             obj.writeCannula(p);
             
             % Print the output to the command line
-            fprintf(obj.fid, '\n');
-            frewind(obj.fid)
-            fwrite(1, fread(obj.fid))
+            fprintf(obj.file_id, '\n');
+            frewind(obj.file_id)
+            fwrite(1, fread(obj.file_id))
             fclose('all');
             disp('*******************************************************************************')
             disp(['Saved as "' fname '"'])
         end
         
         function obj = injection(obj, varargin)
+            % injection generates g-code for a viral injection.
+            %
+            % gCode.injection inserts a needle at the given coordinates,
+            % goes slightly past the coordinates, and returns.
+            % Use the name-pair arguments to set the injection parameters.
             
             [injection, p] = parseInjection(obj, varargin{:});
             
@@ -69,72 +202,27 @@ classdef gCode < handle
             % Open the file for writing
             disp('*******************************************************************************')
             fname = fullfile(obj.folder, [injection.injectionName{:} '_Injection.ncc']);
-            [obj.fid, e] = fopen(fname,'w+');
+            [obj.file_id, e] = fopen(fname,'w+');
             disp(e)
             
             % Write the code
             obj.writeInjection(p);
             
             % Print the output to the command line
-            fprintf(obj.fid, '\n');
-            frewind(obj.fid)
-            fwrite(1, fread(obj.fid))
+            fprintf(obj.file_id, '\n');
+            frewind(obj.file_id)
+            fwrite(1, fread(obj.file_id))
             fclose('all');
             disp('*******************************************************************************')
             disp(['Saved as "' fname '"'])
         end
-             
-        function [injection, p] = parseInjection(obj, varargin)
-            % Parse and validate the coordinates of the needle
-            val = @(x) validateattributes(x, {'double'}, {'scalar'});
-            valP = @(x) validateattributes(x, {'double'}, {'scalar', 'nonnegative'});
-            p=inputParser;
-            addParameter(p,'ML',0,val); % Anterior-Posterior coordinates.
-            addParameter(p,'AP',0,val); % Medial-Lateral coordinates. Positive is to the right
-            addParameter(p,'DV',0,val); % Dorsal-Ventral coordinates. Sign does not matter.
-            addParameter(p,'angle',0,val); % Injection angle. Sign is automatically changed towards medial. If ML is zero, positive angles inject from the right.
-            addParameter(p,'name', num2str(size(obj.injections,1)+1)); % Name for file creation. Left or Right is automatically appended.
-            
-            addParameter(p,'speed',25,valP); % Speed to insert the needle/cannula.
-            addParameter(p,'overshoot',0.25,valP); % For injections: Distance to move the needle past the injection. For cannulas: Length of the needle past the cannula tip. 
-            addParameter(p,'dwellBeforeStart',6,valP); % Duration to pause over the hole before inserting the needle.
-            addParameter(p,'dwellAfterOvershoot',6,valP); % Duration to pause after overshooting the injection site before returning
-            
-            parse(p, varargin{:});
-            
-            ML = p.Results.ML;
-            AP = p.Results.AP;
-            DV = p.Results.DV;
-            angle = p.Results.angle;
-            name = p.Results.name;
-            
-            
-            % Make sure DV is positive
-            DV = abs(DV);
-            
-            % Make sure the angle is towards medial
-            if sign(ML) > 0
-                angle = abs(angle);
-            elseif sign(ML) < 0
-                angle = -abs(angle);
-            end
-            
-            % Calculate ML of the hole
-            holeML = tand(angle) * DV + ML;
-            
-            % Append "left" or "right" to the name
-            injectionName = name;
-            if sign(holeML) > 0
-                injectionName = [injectionName, '_Right'];
-            elseif sign(holeML) < 0
-                injectionName = [injectionName, '_Left'];
-            end
-            
-            injection = table(ML, AP, DV, angle, {name}, holeML, {injectionName}, 'VariableNames', {'ML', 'AP', 'DV', 'angle', 'name', 'holeML', 'injectionName'});
-            
-        end
         
         function drill(obj,varargin)
+            % drill Drills holes for all the previously given injections
+            % and/or cannulas.
+            %
+            % Use the name-pair arguments to set the drilling parameters.
+            
             val = @(x) validateattributes(x, {'double'}, {'scalar'});
             valP = @(x) validateattributes(x, {'double'}, {'scalar', 'nonnegative'});
             p=inputParser;
@@ -152,17 +240,17 @@ classdef gCode < handle
             disp('*******************************************************************************')
             fname = strjoin(unique(obj.injections.name), '_');
             fname = fullfile(obj.folder, [fname '_Holes.ncc']);
-            [obj.fid, e] = fopen(fname,'w+');
+            [obj.file_id, e] = fopen(fname,'w+');
             disp(e)
             
             % Write the comments
             fmt = table2cell(obj.injections(:, {'injectionName', 'ML', 'AP', 'DV', 'angle'}))';
-            fprintf(obj.fid, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
-            fprintf(obj.fid, '%% Drill %g mm holes at %g mm per cycle\n\n', p.Results.skullThickness, p.Results.depthPerCycle);
-            fprintf(obj.fid, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
-            fprintf(obj.fid, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
-            fprintf(obj.fid, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', fmt{:});
-            fprintf(obj.fid, '\n\n');
+            fprintf(obj.file_id, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
+            fprintf(obj.file_id, '%% Drill %g mm holes at %g mm per cycle\n\n', p.Results.skullThickness, p.Results.depthPerCycle);
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', fmt{:});
+            fprintf(obj.file_id, '\n\n');
             
             % Prepare to move by setting the coordinates to 0 and setting the speed to default
             obj.setPosition(0, 0, 0)
@@ -170,7 +258,7 @@ classdef gCode < handle
             
             
             for i = 1:height(obj.injections)
-                fprintf(obj.fid, '\n%% %s\n', obj.injections.injectionName{i});
+                fprintf(obj.file_id, '\n%% %s\n', obj.injections.injectionName{i});
                 
                 % goto hole coordinates
                 obj.move('X', obj.injections.holeML(i), 'Y', obj.injections.AP(i), 'Z', obj.moveHeight,'F',obj.moveSpeed)
@@ -206,124 +294,20 @@ classdef gCode < handle
             end
             
             % Print the output to the command line
-            fprintf(obj.fid, '\n');
-            frewind(obj.fid)
-            fwrite(1, fread(obj.fid))
+            fprintf(obj.file_id, '\n');
+            frewind(obj.file_id)
+            fwrite(1, fread(obj.file_id))
             fclose('all');
             disp('*******************************************************************************')
             disp(['Saved as "' fname '"'])
         end
         
-        function writeInjection(obj, p)
+        function brainAtlas(obj, atlas_type)
+            % brainAtlas plots the injection site on a Paxinos brain atlas.
+            % atlas_type can either be 'rat' or 'mouse'
             
-            j = obj.injections(end, :);
-            
-            % Write the comments
-            fprintf(obj.fid, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
-            fprintf(obj.fid, '%% Inject with %g mm overshoot\n', p.Results.overshoot);
-            fprintf(obj.fid, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
-            fprintf(obj.fid, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
-            fprintf(obj.fid, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', j.injectionName{:}, j.ML, j.AP, j.DV, j.angle);
-            fprintf(obj.fid, '\n\n');
-            
-            % Prepare to move by setting the coordinates to 0 and setting the speed to default
-            obj.setPosition(0, 0, 0)
-            obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
-            fprintf(obj.fid, '\n');
-            
-            % goto hole coordinates
-            obj.move('X', j.holeML, 'Y', j.AP);
-            
-            % Touch the skull
-            obj.move('Z', 0)
-            
-            % Dwell
-            obj.dwell(p.Results.dwellBeforeStart)
-            
-            % Overshoot
-            obj.move('X', j.overshootML, 'Y', j.AP, 'Z', -j.overshootDV,'F', p.Results.speed);
-            obj.dwell(p.Results.dwellAfterOvershoot)
-            
-            % Move to injection site
-            obj.move('X', j.ML, 'Y', j.AP, 'Z', -j.DV);
-            obj.stop
-            
-            % get out of the brain
-            obj.move('X', j.holeML, 'Y', j.AP, 'Z', 0,'F', p.Results.speed);
-            obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
-            
-        end
-        
-        function writeCannula(obj, p)
-            
-            j = obj.injections(end, :);
-            
-            % Write the comments
-            fprintf(obj.fid, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
-            fprintf(obj.fid, '%% Insert cannula for %g mm needle\n', p.Results.overshoot);
-            fprintf(obj.fid, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Cannula  ', ' ML', ' AP', ' DV', ' Angle');
-            fprintf(obj.fid, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
-            fprintf(obj.fid, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', j.injectionName{:}, j.overshootML, j.AP, j.overshootDV, j.angle);
-            fprintf(obj.fid, '\n\n');
-            
-            % Prepare to move by setting the coordinates to 0 and setting the speed to default
-            obj.setPosition(0, 0, 0)
-            obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
-            fprintf(obj.fid, '\n');
-            
-            % goto hole coordinates
-            obj.move('X', j.holeML, 'Y', j.AP);
-            
-            % Touch the skull
-            obj.move('Z', 0)
-            
-            % Dwell
-            obj.dwell(p.Results.dwellBeforeStart)
-            
-            % Insert Cannula
-            obj.move('X', j.ML, 'Y', j.AP, 'Z', -j.DV,'F', p.Results.speed);
-            
-            % Reset speed and stop
-            obj.move('F', obj.moveSpeed);
-            obj.stop
-        end
-        
-        
-        function setPosition(obj,X,Y,Z)
-            fprintf(obj.fid, 'G92 X%.4g Y%.4g Z%.4g', X, Y, Z);
-            fprintf(obj.fid, '\n');
-        end
-        
-        function setSpeed(obj,speed)
-            fprintf(obj.fid, 'F%.4g', speed);
-            fprintf(obj.fid, '\n');
-        end
-        
-        function move(obj,varargin)
-            fprintf(obj.fid, 'G1');
-            for i = 1:2:length(varargin)
-                fprintf(obj.fid, ' %c%.4g', varargin{i}, varargin{i+1});
-            end
-            fprintf(obj.fid, '\n');
-        end
-        
-        function dwell(obj,dwellTime)
-            fprintf(obj.fid, 'G4 P%.4g', dwellTime);
-            fprintf(obj.fid, '\n');
-        end
-        
-        function stop(obj)
-            fprintf(obj.fid, 'M00\n');
-        end
-        
-        
-        function brainAtlas(obj, type)
-            % type can either be 'rat' or 'mouse'
-            p = inputParser;
-            p.addOptional('type', 'mouse', @(x) any(validatestring(lower(x), {'mouse', 'rat'})));
-            p.parse(type);
-            
-            switch lower(p.Results.type)
+            atlas_type = validatestring(atlas_type,{'mouse','rat'});
+            switch atlas_type
                 case 'mouse'
                     atlasFolder = fullfile(fileparts(mfilename('fullpath')),'Brain Atlas','Mouse');
                     tableName = fullfile(fileparts(mfilename('fullpath')),'Brain Atlas','mouse-brain-atlas.csv');
@@ -380,10 +364,175 @@ classdef gCode < handle
                 imshow([im_c; im_s])
             end
         end
+        
+    end
+    
+    methods (Access=private)
+        function [injection, p] = parseInjection(obj, varargin)
+            % parseInjection Parse and validate the coordinates of the needle
+            
+            val = @(x) validateattributes(x, {'double'}, {'scalar'});
+            valP = @(x) validateattributes(x, {'double'}, {'scalar', 'nonnegative'});
+            p=inputParser;
+            addParameter(p,'ML',0,val); % Anterior-Posterior coordinates.
+            addParameter(p,'AP',0,val); % Medial-Lateral coordinates. Positive is to the right
+            addParameter(p,'DV',0,val); % Dorsal-Ventral coordinates. Sign does not matter.
+            addParameter(p,'angle',0,val); % Injection angle. Sign is automatically changed towards medial. If ML is zero, positive angles inject from the right.
+            addParameter(p,'name', num2str(size(obj.injections,1)+1)); % Name for file creation. Left or Right is automatically appended.
+            
+            addParameter(p,'speed',25,valP); % Speed to insert the needle/cannula.
+            addParameter(p,'overshoot',0.25,valP); % For injections: Distance to move the needle past the injection. For cannulas: Length of the needle past the cannula tip.
+            addParameter(p,'dwellBeforeStart',6,valP); % Duration to pause over the hole before inserting the needle.
+            addParameter(p,'dwellAfterOvershoot',6,valP); % Duration to pause after overshooting the injection site before returning
+            
+            parse(p, varargin{:});
+            
+            ML = p.Results.ML;
+            AP = p.Results.AP;
+            DV = p.Results.DV;
+            angle = p.Results.angle;
+            name = p.Results.name;
+            
+            
+            % Make sure DV is positive
+            DV = abs(DV);
+            
+            % Make sure the angle is towards medial
+            if sign(ML) > 0
+                angle = abs(angle);
+            elseif sign(ML) < 0
+                angle = -abs(angle);
+            end
+            
+            % Calculate ML of the hole
+            holeML = tand(angle) * DV + ML;
+            
+            % Append "left" or "right" to the name
+            injectionName = name;
+            if sign(holeML) > 0
+                injectionName = [injectionName, '_Right'];
+            elseif sign(holeML) < 0
+                injectionName = [injectionName, '_Left'];
+            end
+            
+            injection = table(ML, AP, DV, angle, {name}, holeML, {injectionName}, 'VariableNames', {'ML', 'AP', 'DV', 'angle', 'name', 'holeML', 'injectionName'});
+            
+        end
+        
+        function writeInjection(obj, p)
+            % writeInjection writes the g-code to a file
+            j = obj.injections(end, :);
+            
+            % Write the comments
+            fprintf(obj.file_id, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
+            fprintf(obj.file_id, '%% Inject with %g mm overshoot\n', p.Results.overshoot);
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', j.injectionName{:}, j.ML, j.AP, j.DV, j.angle);
+            fprintf(obj.file_id, '\n\n');
+            
+            % Prepare to move by setting the coordinates to 0 and setting the speed to default
+            obj.setPosition(0, 0, 0)
+            obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
+            fprintf(obj.file_id, '\n');
+            
+            % goto hole coordinates
+            obj.move('X', j.holeML, 'Y', j.AP);
+            
+            % Touch the skull
+            obj.move('Z', 0)
+            
+            % Dwell
+            obj.dwell(p.Results.dwellBeforeStart)
+            
+            % Overshoot
+            obj.move('X', j.overshootML, 'Y', j.AP, 'Z', -j.overshootDV,'F', p.Results.speed);
+            obj.dwell(p.Results.dwellAfterOvershoot)
+            
+            % Move to injection site
+            obj.move('X', j.ML, 'Y', j.AP, 'Z', -j.DV);
+            obj.stop
+            
+            % get out of the brain
+            obj.move('X', j.holeML, 'Y', j.AP, 'Z', 0,'F', p.Results.speed);
+            obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
+            
+        end
+        
+        function writeCannula(obj, p)
+            % writeCannula writes the g-code to a file
+            
+            j = obj.injections(end, :);
+            
+            % Write the comments
+            fprintf(obj.file_id, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
+            fprintf(obj.file_id, '%% Insert cannula for %g mm needle\n', p.Results.overshoot);
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Cannula  ', ' ML', ' AP', ' DV', ' Angle');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', j.injectionName{:}, j.overshootML, j.AP, j.overshootDV, j.angle);
+            fprintf(obj.file_id, '\n\n');
+            
+            % Prepare to move by setting the coordinates to 0 and setting the speed to default
+            obj.setPosition(0, 0, 0)
+            obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
+            fprintf(obj.file_id, '\n');
+            
+            % goto hole coordinates
+            obj.move('X', j.holeML, 'Y', j.AP);
+            
+            % Touch the skull
+            obj.move('Z', 0)
+            
+            % Dwell
+            obj.dwell(p.Results.dwellBeforeStart)
+            
+            % Insert Cannula
+            obj.move('X', j.ML, 'Y', j.AP, 'Z', -j.DV,'F', p.Results.speed);
+            
+            % Reset speed and stop
+            obj.move('F', obj.moveSpeed);
+            obj.stop
+        end
+        
+        function setPosition(obj,X,Y,Z)
+            % setPosition g-code to set the tool's current position
+            fprintf(obj.file_id, 'G92 X%.4g Y%.4g Z%.4g', X, Y, Z);
+            fprintf(obj.file_id, '\n');
+        end
+        
+        function setSpeed(obj,speed)
+            %setSpeed sets the speed in mm/minute
+            fprintf(obj.file_id, 'F%.4g', speed);
+            fprintf(obj.file_id, '\n');
+        end
+        
+        function move(obj,varargin)
+            % move Moves to the given coordinates
+            fprintf(obj.file_id, 'G1');
+            for i = 1:2:length(varargin)
+                fprintf(obj.file_id, ' %c%.4g', varargin{i}, varargin{i+1});
+            end
+            fprintf(obj.file_id, '\n');
+        end
+        
+        function dwell(obj,dwellTime)
+            % dwell pauses the machine for X seconds
+            fprintf(obj.file_id, 'G4 P%.4g', dwellTime);
+            fprintf(obj.file_id, '\n');
+        end
+        
+        function stop(obj)
+            % stop halts movement and waits for user to continue
+            fprintf(obj.file_id, 'M00\n');
+        end
+        
+        
     end
     
     methods (Static)
-        function download
+        function downloadBrainAtlas
+            % downloadBrainAtlas downloads the rat and mouse brain atlas
+            % with pixels/mm compiled by Matt Gaidica
             t = readtable('mouse-brain-atlas.csv');
             for i = 1:height(t)
                 fname = [num2str(i) '.jpg'];
