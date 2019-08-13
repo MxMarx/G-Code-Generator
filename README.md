@@ -1,3 +1,4 @@
+  ### Special thanks to [Matt Gaidica](http://gaidi.ca/) for curating the brain atlases!
 
        _____         _____          _            _____                           _
       / ____|       / ____|        | |          / ____|                         | |
