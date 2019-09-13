@@ -177,7 +177,7 @@ classdef gCode < handle
             obj.writeCannula(p);
             
             % Print the output to the command line
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
             frewind(obj.file_id)
             fwrite(1, fread(obj.file_id))
             fclose('all');
@@ -209,7 +209,7 @@ classdef gCode < handle
             obj.writeInjection(p);
             
             % Print the output to the command line
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
             frewind(obj.file_id)
             fwrite(1, fread(obj.file_id))
             fclose('all');
@@ -245,12 +245,12 @@ classdef gCode < handle
             
             % Write the comments
             fmt = table2cell(obj.injections(:, {'injectionName', 'ML', 'AP', 'DV', 'angle'}))';
-            fprintf(obj.file_id, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
-            fprintf(obj.file_id, '%% Drill %g mm holes at %g mm per cycle\n\n', p.Results.skullThickness, p.Results.depthPerCycle);
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', fmt{:});
-            fprintf(obj.file_id, '\n\n');
+            fprintf(obj.file_id, '%% Created %s\r\n', datestr(now, 'yyyy-mmm-dd'));
+            fprintf(obj.file_id, '%% Drill %g mm holes at %g mm per cycle\r\n\r\n', p.Results.skullThickness, p.Results.depthPerCycle);
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\r\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\r\n', '---------', '----', '----', '----', '-------');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\r\n', fmt{:});
+            fprintf(obj.file_id, '\r\n\r\n');
             
             % Prepare to move by setting the coordinates to 0 and setting the speed to default
             obj.setPosition(0, 0, 0)
@@ -258,7 +258,7 @@ classdef gCode < handle
             
             
             for i = 1:height(obj.injections)
-                fprintf(obj.file_id, '\n%% %s\n', obj.injections.injectionName{i});
+                fprintf(obj.file_id, '\r\n%% %s\r\n', obj.injections.injectionName{i});
                 
                 % goto hole coordinates
                 obj.move('X', obj.injections.holeML(i), 'Y', obj.injections.AP(i), 'Z', obj.moveHeight,'F',obj.moveSpeed)
@@ -294,7 +294,7 @@ classdef gCode < handle
             end
             
             % Print the output to the command line
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
             frewind(obj.file_id)
             fwrite(1, fread(obj.file_id))
             fclose('all');
@@ -424,17 +424,17 @@ classdef gCode < handle
             j = obj.injections(end, :);
             
             % Write the comments
-            fprintf(obj.file_id, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
-            fprintf(obj.file_id, '%% Inject with %g mm overshoot\n', p.Results.overshoot);
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', j.injectionName{:}, j.ML, j.AP, j.DV, j.angle);
-            fprintf(obj.file_id, '\n\n');
+            fprintf(obj.file_id, '%% Created %s\r\n', datestr(now, 'yyyy-mmm-dd'));
+            fprintf(obj.file_id, '%% Inject with %g mm overshoot\r\n', p.Results.overshoot);
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\r\n', 'Injection', ' ML', ' AP', ' DV', ' Angle');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\r\n', '---------', '----', '----', '----', '-------');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\r\n', j.injectionName{:}, j.ML, j.AP, j.DV, j.angle);
+            fprintf(obj.file_id, '\r\n\r\n');
             
             % Prepare to move by setting the coordinates to 0 and setting the speed to default
             obj.setPosition(0, 0, 0)
             obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
             
             % goto hole coordinates
             obj.move('X', j.holeML, 'Y', j.AP);
@@ -465,17 +465,17 @@ classdef gCode < handle
             j = obj.injections(end, :);
             
             % Write the comments
-            fprintf(obj.file_id, '%% Created %s\n', datestr(now, 'yyyy-mmm-dd'));
-            fprintf(obj.file_id, '%% Insert cannula for %g mm needle\n', p.Results.overshoot);
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', 'Cannula  ', ' ML', ' AP', ' DV', ' Angle');
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\n', '---------', '----', '----', '----', '-------');
-            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\n', j.injectionName{:}, j.overshootML, j.AP, j.overshootDV, j.angle);
-            fprintf(obj.file_id, '\n\n');
+            fprintf(obj.file_id, '%% Created %s\r\n', datestr(now, 'yyyy-mmm-dd'));
+            fprintf(obj.file_id, '%% Insert cannula for %g mm needle\r\n', p.Results.overshoot);
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\r\n', 'Cannula  ', ' ML', ' AP', ' DV', ' Angle');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4s %+-7.4s %+-7.4s %+-.9s\r\n', '---------', '----', '----', '----', '-------');
+            fprintf(obj.file_id, '%% %-13.13s %+-7.4g %+-7.4g %+-7.4g %+-.4g\r\n', j.injectionName{:}, j.overshootML, j.AP, j.overshootDV, j.angle);
+            fprintf(obj.file_id, '\r\n\r\n');
             
             % Prepare to move by setting the coordinates to 0 and setting the speed to default
             obj.setPosition(0, 0, 0)
             obj.move('Z', obj.moveHeight, 'F', obj.moveSpeed)
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
             
             % goto hole coordinates
             obj.move('X', j.holeML, 'Y', j.AP);
@@ -497,13 +497,13 @@ classdef gCode < handle
         function setPosition(obj,X,Y,Z)
             % setPosition g-code to set the tool's current position
             fprintf(obj.file_id, 'G92 X%.4g Y%.4g Z%.4g', X, Y, Z);
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
         end
         
         function setSpeed(obj,speed)
             %setSpeed sets the speed in mm/minute
             fprintf(obj.file_id, 'F%.4g', speed);
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
         end
         
         function move(obj,varargin)
@@ -512,18 +512,18 @@ classdef gCode < handle
             for i = 1:2:length(varargin)
                 fprintf(obj.file_id, ' %c%.4g', varargin{i}, varargin{i+1});
             end
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
         end
         
         function dwell(obj,dwellTime)
             % dwell pauses the machine for X seconds
             fprintf(obj.file_id, 'G4 P%.4g', dwellTime);
-            fprintf(obj.file_id, '\n');
+            fprintf(obj.file_id, '\r\n');
         end
         
         function stop(obj)
             % stop halts movement and waits for user to continue
-            fprintf(obj.file_id, 'M00\n');
+            fprintf(obj.file_id, 'M00\r\n');
         end
         
         
